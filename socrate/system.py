@@ -8,17 +8,26 @@ from os import environ
 def resolve_hostname(hostname):
     """ This function uses system DNS to resolve a hostname.
     It is capable of retrying in case the host is not immediately available
+    It returns (Address, AddressFamily)
     """
-    return socket.gethostbyname(hostname)
+    res = socket.getaddrinfo(hostname, None)[0]
+    return (res[4][0], res[0])
 
 
 def resolve_address(address):
     """ This function is identical to ``resolve_host`` but also supports
     resolving an address, i.e. including a port.
     """
+
     hostname, *rest = address.rsplit(":", 1)
-    ip_address = resolve_hostname(hostname)
-    return ip_address + "".join(":" + port for port in rest)
+    ports = "".join(":" + port for port in rest)
+    
+    ip_address, address_family = resolve_hostname(hostname)
+
+    if address_family is socket.AF_INET6:
+        return "[{}]{}".format(ip_address, ports)
+
+    return ip_address + ports
 
 
 def get_host_address_from_environment(name, default):
